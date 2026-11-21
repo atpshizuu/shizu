@@ -1,10 +1,10 @@
 import { useEffect, useRef, useState } from 'react'
-import { animate, createTimeline, onScroll, stagger } from 'animejs'
+import { animate, createAnimatable, createTimeline, onScroll, splitText, stagger } from 'animejs'
 import { ArrowUpRight } from 'lucide-react'
 import Spirit from './Spirit'
 import { Chars, Fern, reduced, fine, useInView, useReveal, useFloat, useMagnetic } from './lib'
 import { Meet, Caps, Companion, Wishlist } from './Sections'
-import { Flow, Features } from './Features'
+import { Why, Includes, Faq } from './Sell'
 
 function Particles() {
   const r = useRef()
@@ -59,8 +59,46 @@ function Intro({ onGo, onDone }) {
   )
 }
 
+const SENSES = [['水', 'water'], ['光', 'light'], ['温', 'warmth'], ['湿', 'humidity']]
+function Band() {
+  const r = useRef()
+  useEffect(() => { // kanji ribbon, dragged sideways by the scrollbar
+    if (reduced()) return
+    const a = animate('.bd-t', { translateX: ['6%', '-44%'], ease: 'linear', autoplay: onScroll({ target: r.current, enter: { target: 'top', container: 'bottom' }, leave: { target: 'bottom', container: 'top' }, sync: true }) })
+    return () => a.revert()
+  }, [])
+  return <section className="band" ref={r} aria-label="Water, light, warmth, humidity"><div className="bd-t" aria-hidden="true">{[...SENSES, ...SENSES, ...SENSES].map(([k, e], i) => <span key={i}><b className="jp">{k}</b><i>{e}</i></span>)}</div></section>
+}
+
+function Scrub({ text, className }) { // words light up as you read down the page
+  const r = useRef()
+  useEffect(() => {
+    if (reduced()) return
+    const s = splitText(r.current, { words: true })
+    const a = animate(s.words, { opacity: [.14, 1], ease: 'linear', delay: stagger(70), duration: 300, autoplay: onScroll({ target: r.current, enter: { target: 'top', container: '88%' }, leave: { target: 'bottom', container: '42%' }, sync: true }) })
+    return () => { a.revert(); s.revert() }
+  }, [])
+  return <p ref={r} className={className}>{text}</p>
+}
+
 function Hero({ go }) {
-  const r = useRef(); useFloat(r)
+  const r = useRef(), cta = useMagnetic(), tm = useRef(), [mood, setMood] = useState('happy'); useFloat(r)
+  const poke = () => {
+    setMood('excited'); clearTimeout(tm.current); tm.current = setTimeout(() => setMood('happy'), 2200)
+    if (!reduced()) animate('.h-subject svg', { scaleY: [{ to: .88, duration: 110, ease: 'outQuad' }, { to: 1, duration: 1300, ease: 'outElastic(1,.35)' }], scaleX: [{ to: 1.07, duration: 110 }, { to: 1, duration: 1300, ease: 'outElastic(1,.35)' }] })
+  }
+  useEffect(() => { // eyes follow the cursor, letters ripple away from it
+    if (reduced() || !fine()) return
+    const look = createAnimatable('.h-subject .look', { x: 380, y: 380, ease: 'out(3)' })
+    const lt = [...r.current.querySelectorAll('.hl')].map(el => createAnimatable(el, { y: 700, rotate: 700, ease: 'out(3)' }))
+    const mv = e => {
+      const tx = e.clientX / innerWidth - .5, ty = e.clientY / innerHeight - .5
+      look.x(tx * 30).y(ty * 22)
+      lt.forEach((a, i) => a.y(ty * (i % 2 ? 28 : -28)).rotate(tx * (i - 2.5) * 3))
+    }
+    addEventListener('pointermove', mv)
+    return () => { removeEventListener('pointermove', mv); look.revert(); lt.forEach(a => a.revert()); clearTimeout(tm.current) }
+  }, [])
   useEffect(() => { // mouse parallax (transform only, rAF-lerped)
     if (reduced() || !fine()) return
     const L = [...r.current.querySelectorAll('[data-d]')]; let tx = 0, ty = 0, x = 0, y = 0, id
@@ -92,11 +130,11 @@ function Hero({ go }) {
         <div className="layer" data-d="-14"><div className="h-kanji" data-in aria-hidden="true">静</div></div>
         <div className="layer" data-d="12"><Fern className="fern f1" data-float data-in /><Fern className="fern f2" flip data-float data-in /></div>
         <div className="layer" data-d="22"><h1 className="h-title" aria-label="SHIZU">{[...'SHIZU'].map((c, i) => <span className="hl" key={i} aria-hidden="true"><span data-in>{c}</span></span>)}</h1></div>
-        <div className="layer" data-d="-32"><div className="h-subject" data-in><Spirit /></div></div>
+        <div className="layer" data-d="-32"><div className="h-subject" data-in role="button" tabIndex={0} aria-label="Poke SHIZU" onClick={poke} onKeyDown={e => e.key === 'Enter' && poke()}><Spirit mood={mood} /></div></div>
         <div className="meta tl" data-meta data-in><b className="jp">静</b><span className="mono">SHIZU<br />Bio-integrated plant companion</span></div>
-        <div className="meta tr mono" data-meta data-in>N 35°01′ / E 135°46′<br />System 01 · awake</div>
+        <div className="meta bc mono" data-meta data-in>Go on, poke it</div>
         <div className="meta vt jp" data-meta data-in>静かな精霊</div>
-        <div className="meta bl" data-meta data-in><p className="tag">A Little Spirit.<br />A Living Connection.</p></div>
+        <div className="meta bl" data-meta data-in><p className="tag">The plant<br />that talks back.</p><a ref={cta} href="#wishlist" className="send hero-cta">Get early access <ArrowUpRight size={16} aria-hidden="true" /></a></div>
         <div className="meta br mono" data-meta data-in>Where technology learns to listen to nature.<span className="bar" /></div>
       </div>
     </section>
@@ -111,11 +149,11 @@ function Story() {
       <Fern className="fern sf" data-rv="right" />
       <h2 className="mono" data-rv="up">The Story</h2>
       <div className="st-body">
-        <p className="lead"><Chars text="Long before machines learned to understand the world, nature communicated in ways humans rarely noticed." /></p>
-        <p><Chars text="In forgotten gardens, where the wind moved through leaves and time passed quietly, a little spirit waited." /></p>
+        <Scrub className="lead" text="Long before machines learned to understand the world, nature communicated in ways humans rarely noticed." />
+        <Scrub text="In forgotten gardens, where the wind moved through leaves and time passed quietly, a little spirit waited." />
         <p className="name"><Chars text="They called it SHIZU." /></p>
-        <p><Chars text="A quiet presence that awakens wherever nature is cared for." /></p>
-        <p><Chars text="Now, through technology, SHIZU finds a new way to observe, remember and grow alongside the living world." /></p>
+        <Scrub text="A quiet presence that awakens wherever nature is cared for." />
+        <Scrub text="Now, through technology, SHIZU finds a new way to observe, remember and grow alongside the living world." />
         <p className="mono note" data-rv="up">SHIZU is an original, folklore-inspired character, influenced by Japanese nature-spirit traditions such as the kodama. It is not an existing legend.</p>
       </div>
     </section>
@@ -139,10 +177,10 @@ function Closing() {
         <div className="cl-k jp" data-in aria-hidden="true">静</div>
         <p className="cl-t" data-in>SHIZU</p>
         <p className="cl-s mono" data-in>A Little Spirit. A Living Connection.</p>
-        <a ref={cta} href="#wishlist" className="send cl-s" data-in>Join the Awakening <ArrowUpRight size={16} aria-hidden="true" /></a>
+        <a ref={cta} href="#wishlist" className="send cl-s" data-in>Be first to own one <ArrowUpRight size={16} aria-hidden="true" /></a>
       </section>
       <footer>
-        <nav aria-label="Footer" className="mono"><a href="#story">Story</a> <a href="#meet">Meet SHIZU</a> <a href="#beyond">Beyond</a> <a href="#features">Features</a> <a href="#companion">Companion</a> <a href="#wishlist">Early access</a></nav>
+        <nav aria-label="Footer" className="mono"><a href="#story">Story</a> <a href="#meet">Meet SHIZU</a> <a href="#why">Why SHIZU</a> <a href="#inside">Inside</a> <a href="#faq">FAQ</a> <a href="#wishlist">Early access</a></nav>
         <nav aria-label="Social" className="mono"><a href="#">Instagram</a> <a href="#">YouTube</a> <a href="#">X</a></nav>
         <p className="mono">© 2026 SHIZU. All rights reserved.</p>
       </footer>
@@ -169,9 +207,9 @@ export default function App() {
       {!done && <Intro onGo={() => setGo(true)} onDone={() => setDone(true)} />}
       <header className="nav">
         <a href="#top" className="logo"><span className="jp">静</span> SHIZU</a>
-        <nav aria-label="Primary"><a href="#story">Story</a><a href="#meet">Meet</a><a href="#beyond">Beyond</a><a href="#features">Features</a><a href="#companion">Companion</a><a href="#wishlist" className="join">Early access</a></nav>
+        <nav aria-label="Primary"><a href="#story">Story</a><a href="#meet">Meet</a><a href="#why">Why</a><a href="#companion">Companion</a><a href="#inside">Inside</a><a href="#faq">FAQ</a><a href="#wishlist" className="join">Get early access</a></nav>
       </header>
-      <main><Hero go={go} /><Story /><Meet /><Caps /><Flow /><Features /><Companion /><Wishlist /><Closing /></main>
+      <main><Hero go={go} /><Story /><Meet /><Band /><Why /><Caps /><Companion /><Includes /><Faq /><Wishlist /><Closing /></main>
     </>
   )
 }

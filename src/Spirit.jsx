@@ -35,10 +35,10 @@ export default function Spirit({ mood = 'happy' }) {
       <circle cx="200" cy="245" r="96" fill="#080A0B" stroke="#78876A" strokeWidth="3" />
       <rect x="82" y="300" width="16" height="30" rx="8" fill="#101B17" />
       <path d="M304 300h16M304 310h16M304 320h16" stroke="#101B17" strokeWidth="3" strokeLinecap="round" />
-      <g ref={g} style={{ transformOrigin: '200px 245px' }} stroke={C} strokeWidth="7" strokeLinecap="round" fill="none">
+      <g className="look"><g ref={g} style={{ transformOrigin: '200px 245px' }} stroke={C} strokeWidth="7" strokeLinecap="round" fill="none">
         <path d={f.p} fill={mood === 'excited' ? C : 'none'} />
         {f.d.map(([x, y, r], i) => <circle key={i} cx={x} cy={y} r={r} fill={C} stroke="none" />)}
-      </g>
+      </g></g>
       <text x="200" y="450" textAnchor="middle" fontFamily="JetBrains Mono,monospace" fontSize="11" letterSpacing="3" fill="#080A0B">静 SHIZU-01</text>
     </svg>
   )

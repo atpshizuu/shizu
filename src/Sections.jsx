@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
-import { animate, stagger } from 'animejs'
-import { Send } from 'lucide-react'
+import { animate, createDraggable, createSpring, onScroll, stagger } from 'animejs'
+import { Droplet, Send } from 'lucide-react'
 import Spirit, { MOODS } from './Spirit'
 import { Chars, reduced, useInView, useReveal, useMagnetic } from './lib'
 
@@ -83,7 +83,7 @@ export function Caps() {
   const h = useReveal()
   return (
     <section id="beyond" data-bg="#0c1210">
-      <header ref={h}><p className="mono" data-rv="up">Four ways SHIZU pays attention</p><h2 className="big"><Chars text="Beyond what you see" /></h2></header>
+      <header ref={h}><h2 className="big"><Chars text="Beyond what you see" /></h2></header>
       {CAPS.map(([t, d], n) => <Row key={t} n={n} t={t} d={d} />)}
     </section>
   )
@@ -98,7 +98,17 @@ const MD = {
 }
 const ROT = { happy: 0, curious: 5, sleepy: -3, concerned: -5, excited: 3 }
 export function Companion() {
-  const [m, setM] = useState('happy'), r = useReveal(), s = useRef()
+  const [m, setM] = useState('happy'), r = useReveal(), s = useRef(), dr = useRef(), tm = useRef()
+  useEffect(() => { // water drop you can drag onto SHIZU
+    const hit = () => {
+      const a = dr.current.getBoundingClientRect(), b = s.current.getBoundingClientRect()
+      if (a.right > b.left + b.width * .25 && a.left < b.right - b.width * .25 && a.bottom > b.top + b.height * .2 && a.top < b.bottom - b.height * .3) {
+        setM('excited'); clearTimeout(tm.current); tm.current = setTimeout(() => setM('happy'), 2800)
+      } else setM('happy')
+    }
+    const d = createDraggable(dr.current, { container: '#companion', releaseEase: createSpring({ stiffness: 110, damping: 7 }), onGrab: () => setM('curious'), onRelease: hit })
+    return () => { d.revert(); clearTimeout(tm.current) }
+  }, [])
   useEffect(() => {
     if (reduced()) return
     const a = animate(s.current, { rotate: ROT[m], translateY: m === 'excited' ? [0, -14, 0] : 0, duration: 1000, ease: 'outExpo' })
@@ -115,6 +125,7 @@ export function Companion() {
             {MOODS.map((k, n) => <button key={k} role="radio" aria-checked={m === k} onClick={() => setM(k)}>{k}<span>0{n + 1}</span></button>)}
           </div>
           <p className="cm-d" aria-live="polite">{MD[m]}</p>
+          <div className="drop-z"><div ref={dr} className="drop" aria-label="Water drop. Drag it onto SHIZU."><Droplet size={30} aria-hidden="true" /></div><span className="mono">Give it a drink. Drag the drop onto SHIZU.</span></div>
         </div>
       </div>
     </section>
@@ -122,8 +133,13 @@ export function Companion() {
 }
 
 export function Wishlist() {
-  const r = useReveal(), btn = useMagnetic(), t0 = useRef(Date.now())
+  const r = useReveal(), btn = useMagnetic(), t0 = useRef(Date.now()), w = useRef()
   const [st, setSt] = useState('idle'), [msg, setMsg] = useState(''), [who, setWho] = useState('')
+  useEffect(() => { // the red sun rises up through the page into the signup
+    if (reduced()) return
+    const a = animate(w.current, { clipPath: ['circle(0% at 50% 100%)', 'circle(145% at 50% 100%)'], ease: 'inOutQuad', autoplay: onScroll({ target: w.current, enter: { target: 'top', container: 'bottom' }, leave: { target: 'top', container: '20%' }, sync: true }) })
+    return () => a.revert()
+  }, [])
   useEffect(() => {
     if (st !== 'done' || reduced()) return
     const a = animate('.stamp', { scale: [3, 1], opacity: [0, 1], rotate: [-14, -6], duration: 1400, ease: 'outExpo' })
@@ -139,18 +155,18 @@ export function Wishlist() {
     } catch { setSt('error'); setMsg('Could not reach the server. Please try again.') }
   }
   return (
-    <section id="wishlist" className="wl" data-bg="#12080b" ref={r}>
-      <h2 className="big" data-rv="left">Be there<br />when SHIZU<br />awakens.</h2>
-      <p className="wl-p" data-rv="up">Something is quietly growing. Leave your mark and be among the first to experience it.</p>
+    <section id="wishlist" className="wl" ref={e => { r.current = e; w.current = e }}>
+      <h2 className="big" data-rv="left">Bring SHIZU<br />home first.</h2>
+      <p className="wl-p" data-rv="up">Join the early access list and you’ll hear first when pre-orders open. No payment, no spam, just one email when it’s your turn.</p>
       {st === 'done' ? (
-        <div className="done" role="status"><div className="stamp jp" aria-hidden="true">静</div><p>You’re on the list, {who}. SHIZU will remember.</p></div>
+        <div className="done" role="status"><div className="stamp jp" aria-hidden="true">静</div><p>You’re on the list, {who}. We’ll email you first.</p></div>
       ) : (
         <form onSubmit={submit} data-rv="up" noValidate={false}>
           <label className="fld"><span className="mono">Name</span><input name="name" required maxLength={80} autoComplete="name" /></label>
           <label className="fld"><span className="mono">Email</span><input name="email" type="email" required maxLength={254} autoComplete="email" /></label>
-          <label className="fld"><span className="mono">Why are you joining? (optional)</span><textarea name="reason" rows={2} maxLength={500} /></label>
+          <label className="fld"><span className="mono">What would you grow with it? (optional)</span><textarea name="reason" rows={2} maxLength={500} /></label>
           <input className="hp" name="company" tabIndex={-1} autoComplete="off" aria-hidden="true" />
-          <button ref={btn} className="send" disabled={st === 'sending'}>{st === 'sending' ? 'Leaving your mark…' : 'Leave your mark'} <Send size={16} aria-hidden="true" /></button>
+          <button ref={btn} className="send" disabled={st === 'sending'}>{st === 'sending' ? 'Saving your spot…' : 'Get early access'} <Send size={16} aria-hidden="true" /></button>
           {st === 'error' && <p className="err" role="alert">{msg}</p>}
         </form>
       )}
