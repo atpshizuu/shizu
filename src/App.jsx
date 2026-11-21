@@ -4,7 +4,7 @@ import { ArrowUpRight } from 'lucide-react'
 import Spirit from './Spirit'
 import { Chars, Fern, reduced, fine, useInView, useReveal, useFloat, useMagnetic } from './lib'
 import { Meet, Caps, Companion, Wishlist } from './Sections'
-//import { Flow, Features } from './Features'
+import { Flow, Features } from './Features'
 
 function Particles() {
   const r = useRef()
